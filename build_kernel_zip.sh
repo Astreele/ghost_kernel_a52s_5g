@@ -84,6 +84,7 @@ RELEASE_DIR="${KERNEL_ROOT}/release"
 CUSTOM_PATCHES="${KERNEL_ROOT}/custom-patches"
 FSTAB_PATCH="${CUSTOM_PATCHES}/unica_fstab.patch"
 BASE_IMAGES_DIR="${KERNEL_ROOT}/base-images"
+IMAGES_AOSP_DIR="${TOOLCHAIN_DIR}/baseimages/aosp"
 TEMPLATE_ZIP_DIR="${KERNEL_ROOT}/template-zip-file"
 IMAGES_DIR="${TEMPLATE_ZIP_DIR}/images"
 UPDATE_BINARY="${TEMPLATE_ZIP_DIR}/META-INF/com/google/android/update-binary"
@@ -156,8 +157,8 @@ success "Submodules up to date"
 
 check_file "${BASE_IMAGES_DIR}/oneui/boot/boot.img"               "One-UI boot image"
 check_file "${BASE_IMAGES_DIR}/oneui/vendor_boot/vendor_boot.img" "One-UI vendor_boot image"
-check_file "${BASE_IMAGES_DIR}/aosp/boot/boot.img"                "AOSP boot image"
-check_file "${BASE_IMAGES_DIR}/aosp/vendor_boot/vendor_boot.img"  "AOSP vendor_boot image"
+check_file "${IMAGES_AOSP_DIR}/boot/boot.img"                     "AOSP boot image (Project Infinity X)"
+check_file "${IMAGES_AOSP_DIR}/vendor_boot/vendor_boot.img"       "AOSP vendor_boot image (Project Infinity X)"
 
 (( PREFLIGHT_FAILED == 0 )) || die "Pre-flight checks failed — fix the above before building"
 success "Pre-flight checks passed"
@@ -381,8 +382,8 @@ for ROM_TYPE in "One-UI" "AOSP"; do
         MAGISKBOOT_BOOT_DIR="${BASE_IMAGES_DIR}/oneui/boot"
         MAGISKBOOT_VENDOR_DIR="${BASE_IMAGES_DIR}/oneui/vendor_boot"
     else
-        MAGISKBOOT_BOOT_DIR="${BASE_IMAGES_DIR}/aosp/boot"
-        MAGISKBOOT_VENDOR_DIR="${BASE_IMAGES_DIR}/aosp/vendor_boot"
+        MAGISKBOOT_BOOT_DIR="${IMAGES_AOSP_DIR}/boot"
+        MAGISKBOOT_VENDOR_DIR="${IMAGES_AOSP_DIR}/vendor_boot"
     fi
 
     # ZIP name: drop the KSU-Next segment on branches that don't ship it
