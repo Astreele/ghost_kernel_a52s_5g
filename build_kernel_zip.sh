@@ -84,9 +84,11 @@ RELEASE_DIR="${KERNEL_ROOT}/release"
 CUSTOM_PATCHES="${KERNEL_ROOT}/custom-patches"
 FSTAB_PATCH="${CUSTOM_PATCHES}/unica_fstab.patch"
 BASE_IMAGES_DIR="${KERNEL_ROOT}/base-images"
+IMAGES_AOSP_DIR="${TOOLCHAIN_DIR}/baseimages/aosp"
 TEMPLATE_ZIP_DIR="${KERNEL_ROOT}/template-zip-file"
 IMAGES_DIR="${TEMPLATE_ZIP_DIR}/images"
 UPDATE_BINARY="${TEMPLATE_ZIP_DIR}/META-INF/com/google/android/update-binary"
+BRANCH=$(git -C "$KERNEL_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null)
 
 # ─── Sanity checks ────────────────────────────────────────────────────────────
 
@@ -156,8 +158,8 @@ success "Submodules up to date"
 
 check_file "${BASE_IMAGES_DIR}/oneui/boot/boot.img"               "One-UI boot image"
 check_file "${BASE_IMAGES_DIR}/oneui/vendor_boot/vendor_boot.img" "One-UI vendor_boot image"
-check_file "${BASE_IMAGES_DIR}/aosp/boot/boot.img"                "AOSP boot image"
-check_file "${BASE_IMAGES_DIR}/aosp/vendor_boot/vendor_boot.img"  "AOSP vendor_boot image"
+check_file "${IMAGES_AOSP_DIR}/boot/boot.img"                     "AOSP boot image (Project Infinity X)"
+check_file "${IMAGES_AOSP_DIR}/vendor_boot/vendor_boot.img"       "AOSP vendor_boot image (Project Infinity X)"
 
 (( PREFLIGHT_FAILED == 0 )) || die "Pre-flight checks failed — fix the above before building"
 success "Pre-flight checks passed"
@@ -254,6 +256,22 @@ make -C "${KERNEL_ROOT}" O="${OUT_DIR}" CC=clang CROSS_COMPILE=aarch64-linux-gnu
 success "Defconfig generated"
 
 # ─── Step 7: Kernel build ────────────────────────────────────────────────────
+info "Installing headers serially"
+make -j"${THREAD_COUNT}" \
+    -C "${KERNEL_ROOT}" \
+    O="${OUT_DIR}" \
+    ARCH=arm64 \
+    CC=clang \
+    LLVM=1 \
+    LLVM_IAS=1 \
+    CROSS_COMPILE=aarch64-linux-gnu- \
+    KBUILD_BUILD_USER="${KBUILD_BUILD_USER}" \
+    KBUILD_BUILD_HOST="${KBUILD_BUILD_HOST}" \
+    CONFIG_SECTION_MISMATCH_WARN_ONLY=y \
+    headers \
+    || die "Failed to install headers"
+success "Headers installed"
+
 info "Building kernel with ${THREAD_COUNT} jobs..."
 make -j"${THREAD_COUNT}" \
     -C "${KERNEL_ROOT}" \
@@ -381,16 +399,20 @@ for ROM_TYPE in "One-UI" "AOSP"; do
         MAGISKBOOT_BOOT_DIR="${BASE_IMAGES_DIR}/oneui/boot"
         MAGISKBOOT_VENDOR_DIR="${BASE_IMAGES_DIR}/oneui/vendor_boot"
     else
-        MAGISKBOOT_BOOT_DIR="${BASE_IMAGES_DIR}/aosp/boot"
-        MAGISKBOOT_VENDOR_DIR="${BASE_IMAGES_DIR}/aosp/vendor_boot"
+        MAGISKBOOT_BOOT_DIR="${IMAGES_AOSP_DIR}/boot"
+        MAGISKBOOT_VENDOR_DIR="${IMAGES_AOSP_DIR}/vendor_boot"
     fi
 
-    # ZIP name: drop the KSU-Next segment on branches that don't ship it
-    if [[ "$KSU_VERSION" == "none" ]]; then
-        ZIP_NAME="${AUTHOR}_${BUILD_DATE}_${ROM_TYPE}_${DEVICE}_${SHA}.zip"
-    else
-        ZIP_NAME="${AUTHOR}_${BUILD_DATE}_${ROM_TYPE}_${KSU_NAME}-${KSU_VERSION}_${DEVICE}_${SHA}.zip"
+    ZIP_NAME="${AUTHOR}"
+    ZIP_NAME+="_${BUILD_DATE}"
+    ZIP_NAME+="_${ROM_TYPE}"
+    if [[ "$BRANCH" == "susfs" ]]; then
+        ZIP_NAME+="_SUSFS"
     fi
+    ZIP_NAME+="_${KSU_NAME}-${KSU_VERSION}"
+    ZIP_NAME+="_${DEVICE}"
+    ZIP_NAME+="_${SHA}"
+    ZIP_NAME+=".zip"
 
     # ─── Step 9: boot.img ────────────────────────────────────────────────────────
     find "${IMAGES_DIR}" -mindepth 1 -delete
