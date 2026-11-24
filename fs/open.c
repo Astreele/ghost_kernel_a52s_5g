@@ -32,10 +32,10 @@
 #include <linux/ima.h>
 #include <linux/dnotify.h>
 #include <linux/compat.h>
-#include <linux/fcntl.h>
 #ifdef CONFIG_KSU_SUSFS
 #include <linux/susfs_def.h>
 #endif
+#include <linux/fcntl.h>
 
 #include "internal.h"
 
@@ -405,9 +405,9 @@ static const struct cred *access_override_creds(void)
 #ifdef CONFIG_KSU_SUSFS
 extern struct static_key_true ksu_su_compat_enabled;
 extern bool __ksu_is_allow_uid_for_current(uid_t uid);
-extern int ksu_handle_faccessat(int *dfd, struct filename **filename, int *mode,
-			int *flags);
+extern int ksu_handle_faccessat(int *dfd, struct filename **filename, int *mode, int *__unused_flags);
 #endif
+
 long do_faccessat(int dfd, const char __user *filename, int mode, int flags)
 {
 	struct path path;
